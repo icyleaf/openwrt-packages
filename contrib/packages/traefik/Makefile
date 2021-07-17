@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=traefik
 PKG_VERSION:=2.4.2
-PKG_RELEASE:=0.1.0
+PKG_RELEASE:=0.1.1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/traefik/traefik.git
@@ -14,7 +14,7 @@ PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_SOURCE_SUBDIR)
 
 # PKG_SOURCE:=traefik_v$(PKG_VERSION).src.tar.gz
 # PKG_SOURCE_URL:=https://github.com/traefik/traefik/releases/download/v$(PKG_VERSION)
-# PKG_HASH:=338df121dded850c43ee957f07d6e6af1bae45d4735ea5975ed9b5b44725a1e8
+# PKG_HASH:=338df121dded850c43ee957f07d6e6af1bae45d4735egsa5975ed9b5b44725a1e8
 
 PKG_BUILD_DEPENDS:=golang/host
 PKG_BUILD_PARALLEL:=1
@@ -22,11 +22,13 @@ PKG_USE_MIPS16:=0
 
 GO_PKG:=github.com/traefik/traefik
 GO_PKG_LDFLAGS:=-s -w
+GO_PKG_LDFLAGS_X:= \
+	$(GO_PKG)/version.Version=$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk
 
-define Package/traefik
+define Package/$(PKG_NAME)
 	SUBMENU:=Web Servers/Proxies
 	SECTION:=net
 	CATEGORY:=Network
@@ -34,8 +36,8 @@ define Package/traefik
 	URL:=https://github.com/traefik/traefik/
 endef
 
-define Package/traefik/description
-	Hello world for test
+define Package/$(PKG_NAME)/description
+	Traefik, The Cloud Native Application Proxy
 endef
 
 define Build/Prepare
@@ -48,14 +50,17 @@ endef
 define Build/Compile
 	$(eval GO_PKG_BUILD_PKG:=$(GO_PKG))
 	$(call GoPackage/Build/Configure)
-	$(eval GO_PKG_LDFLAGS+=-X '$(GO_PKG)/version.ExGoVersionInfo=$(GO_ARM) $(GO_MIPS)$(GO_MIPS64)')
 	$(call GoPackage/Build/Compile)
-	test -f "$(STAGING_DIR_HOST)/bin/upx" && $(STAGING_DIR_HOST)/bin/upx --lzma --best $(GO_PKG_BUILD_BIN_DIR)/traefik && chmod +wx $(GO_PKG_BUILD_BIN_DIR)/traefik
+	ifeq ($(CONFIG_TROJAN_GO_COMPRESS_UPX),y)
+		$(STAGING_DIR_HOST)/bin/upx --lzma --best $(GO_PKG_BUILD_BIN_DIR)/$(PKG_NAME)
+	endif
+	chmod +wx $(GO_PKG_BUILD_BIN_DIR)/$(PKG_NAME)
 endef
 
-define Package/traefik/install
+define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/traefik $(1)/usr/sbin/
+	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/$(PKG_NAME) $(1)/usr/sbin/$(PKG_NAME)
 endef
 
-$(eval $(call BuildPackage,traefik))
+$(eval $(call GoBinPackage,$(PKG_NAME)))
+$(eval $(call BuildPackage,$(PKG_NAME)))
