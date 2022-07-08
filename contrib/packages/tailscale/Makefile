@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=tailscale
-PKG_VERSION:=1.26.1
+PKG_VERSION:=1.26.2
 PKG_RELEASE:=1
 
 PKG_SOURCE:=tailscale-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/tailscale/tailscale/tar.gz/v$(PKG_VERSION)
-PKG_HASH:=skip # FIX: need update
+PKG_HASH:=303ef87926d5d02b65827a5c955308047bd4d0995abee152a4e78b4522394539
 
 PKG_MAINTAINER:=Jan Pavlinec <jan.pavlinec@nic.cz>
 PKG_LICENSE:=BSD-3-Clause
@@ -67,6 +67,10 @@ endef
 define Package/tailscaled/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/tailscaled $(1)/usr/sbin
+  $(INSTALL_DIR) $(1)/etc/init.d/
+	$(INSTALL_BIN) ./files/etc/init.d/tailscale $(1)/etc/init.d/tailscale
+	$(INSTALL_DIR) $(1)/etc/config/
+	$(INSTALL_DATA) ./files/etc/config/tailscale $(1)/etc/config/tailscale
 endef
 
 $(eval $(call BuildPackage,tailscale))
