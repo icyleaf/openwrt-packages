@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=tailscale
-PKG_VERSION:=1.26.2
-PKG_RELEASE:=1
+PKG_VERSION:=1.30.2
+PKG_RELEASE:=2
 
 PKG_SOURCE:=tailscale-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=https://codeload.github.com/tailscale/tailscale/tar.gz/v$(PKG_VERSION)
-PKG_HASH:=303ef87926d5d02b65827a5c955308047bd4d0995abee152a4e78b4522394539
+PKG_SOURCE_URL:=https://codeload.github.com/tailscale/tailscale/tar.gz/v$(PKG_VERSION)?
+PKG_HASH:=4e5ee37ae734b8312153d4f8da340295e9a6a455e3f3943a62199b16d89c8bb5
 
 PKG_MAINTAINER:=Jan Pavlinec <jan.pavlinec@nic.cz>
 PKG_LICENSE:=BSD-3-Clause
@@ -32,29 +32,29 @@ include $(INCLUDE_DIR)/package.mk
 include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk
 
 define Package/tailscale/Default
-  SECTION:=net
-  CATEGORY:=Network
-  SUBMENU:=VPN
-  TITLE:=Zero config VPN
-  URL:=https://tailscale.com
-  DEPENDS:=$(GO_ARCH_DEPENDS)
+	SECTION:=net
+	CATEGORY:=Network
+	SUBMENU:=VPN
+	TITLE:=Zero config VPN
+	URL:=https://tailscale.com
+	DEPENDS:=$(GO_ARCH_DEPENDS)
 endef
 
 define Package/tailscaled
-  $(call Package/tailscale/Default)
-  TITLE+= (daemon)
-  DEPENDS+= +ca-bundle +kmod-tun
+	$(call Package/tailscale/Default)
+	TITLE+= (daemon)
+	DEPENDS+= +ca-bundle +kmod-tun
 endef
 
 define Package/tailscale
-  $(call Package/tailscale/Default)
-  TITLE+= (utility)
-  DEPENDS+= +tailscaled
+	$(call Package/tailscale/Default)
+	TITLE+= (utility)
+	DEPENDS+= +tailscaled
 endef
 
 define Package/tailscale/description
-  It creates a secure network between your servers, computers,
-  and cloud instances. Even when separated by firewalls or subnets.
+	It creates a secure network between your servers, computers,
+	and cloud instances. Even when separated by firewalls or subnets.
 endef
 
 Package/tailscaled/description:=$(Package/tailscale/description)
@@ -67,7 +67,7 @@ endef
 define Package/tailscaled/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/tailscaled $(1)/usr/sbin
-  $(INSTALL_DIR) $(1)/etc/init.d/
+	$(INSTALL_DIR) $(1)/etc/init.d/
 	$(INSTALL_BIN) ./files/etc/init.d/tailscale $(1)/etc/init.d/tailscale
 	$(INSTALL_DIR) $(1)/etc/config/
 	$(INSTALL_DATA) ./files/etc/config/tailscale $(1)/etc/config/tailscale
