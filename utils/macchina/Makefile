@@ -1,26 +1,25 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=macchina
-PKG_VERSION:=6.0.6
+PKG_VERSION:=6.1.5
 PKG_RELEASE:=$(AUTORELEASE)
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_URL:=https://github.com/Macchina-CLI/macchina/releases/download/v$(PKG_VERSION)/$(PKG_NAME)-linux-x86_64?
-PKG_HASH:=0a5bc95c22ed31035f4e905c75124062c3e8501199005f7f181e7c6f0ea77113
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+ifeq ($(ARCH),x86_64)
+	PKG_SOURCE:=$(PKG_NAME)-linux-x86_64-$(PKG_VERSION)
+	PKG_SOURCE_URL:=https://github.com/Macchina-CLI/macchina/releases/download/v$(PKG_VERSION)/$(PKG_NAME)-linux-x86_64?
+	PKG_HASH:=aa0da22a13324b700383c1bfc1ea33216cdc8cc9f57c8186651caa0e2e49761e
+else ifeq ($(ARCH),aarch64)
+	PKG_SOURCE:=$(PKG_NAME)-linux-aarch64-$(PKG_VERSION)
+	PKG_SOURCE_URL:=https://github.com/Macchina-CLI/macchina/releases/download/v$(PKG_VERSION)/$(PKG_NAME)-linux-aarch64?
+	PKG_HASH:=09274b8220530c5e860727dcce5f8ab8e88205700eb99f43f1eea7ef905e4052
+else
+	PKG_SOURCE:=dummy
+	PKG_SOURCE_URL:=dummy
+	PKG_HASH:=dummy
+endif
 
-# ifeq ($(ARCH),aarch64)
-# 	PKG_SOURCE:=$(PKG_NAME)-linux-aarch64
-# 	PKG_HASH:=skip
-# else ifeq ($(ARCH),x86_64)
-# 	PKG_SOURCE:=$(PKG_NAME)-linux-x86_64
-# 	PKG_HASH:=skip
-# # Set the default value to make OpenWrt Package Checker happy
-# else
-# 	PKG_SOURCE:=dummy
-# 	PKG_HASH:=dummy
-# endif
-
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_SOURCE)
+PKG_CAT:=skip
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
 PKG_MAINTAINER:=Aziz Ben Ali <ba.tahaaziz@gmail.com>
@@ -32,21 +31,18 @@ define Package/$(PKG_NAME)
 	CATEGORY:=Utilities
 	TITLE:=A system information frontend, with an (unhealthy) emphasis on performance.
 	URL:=https://github.com/Macchina-CLI/macchina
-	DEPENDS:=+wget-ssl
+	DEPENDS:=+libc +libsqlite3 +libpthread
 endef
 
 define Package/$(PKG_NAME)/description
-	A system information frontend, with an (unhealthy) emphasis o n performance.
+	A system information frontend, with an (unhealthy) emphasis on performance.
 endef
-
-CONFIGURE_ARGS+= --enable-downloader=wget
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 endef
 
 define Build/Compile
-
 endef
 
 define Package/$(PKG_NAME)/install
