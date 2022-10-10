@@ -1,28 +1,25 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=macchina
-PKG_VERSION:=6.1.5
+PKG_VERSION:=6.1.6
 PKG_RELEASE:=$(AUTORELEASE)
 
 ifeq ($(ARCH),x86_64)
-	PKG_SOURCE:=$(PKG_NAME)-linux-x86_64-$(PKG_VERSION)
-	PKG_SOURCE_URL:=https://github.com/Macchina-CLI/macchina/releases/download/v$(PKG_VERSION)/$(PKG_NAME)-linux-x86_64?
-	PKG_HASH:=aa0da22a13324b700383c1bfc1ea33216cdc8cc9f57c8186651caa0e2e49761e
+	PKG_SOURCE:=$(PKG_NAME)-linux-$(ARCH)-$(PKG_VERSION)
+	PKG_SOURCE_URL:=https://github.com/Macchina-CLI/macchina/releases/download/v$(PKG_VERSION)/$(PKG_NAME)-linux-$(ARCH)?
+	PKG_HASH:=33f157858261c913d42dd6e1b9b9d22a23148537e6ea9dea25e4f26b250001f3
 else ifeq ($(ARCH),aarch64)
-	PKG_SOURCE:=$(PKG_NAME)-linux-aarch64-$(PKG_VERSION)
-	PKG_SOURCE_URL:=https://github.com/Macchina-CLI/macchina/releases/download/v$(PKG_VERSION)/$(PKG_NAME)-linux-aarch64?
-	PKG_HASH:=09274b8220530c5e860727dcce5f8ab8e88205700eb99f43f1eea7ef905e4052
+	PKG_SOURCE:=$(PKG_NAME)-linux-$(ARCH)-$(PKG_VERSION)
+	PKG_SOURCE_URL:=https://github.com/Macchina-CLI/macchina/releases/download/v$(PKG_VERSION)/$(PKG_NAME)-linux-$(ARCH)?
+	PKG_HASH:=skip
 else
 	PKG_SOURCE:=dummy
 	PKG_SOURCE_URL:=dummy
 	PKG_HASH:=dummy
 endif
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_SOURCE)
-PKG_CAT:=skip
 PKG_LICENSE:=MIT
-PKG_LICENSE_FILES:=LICENSE
-PKG_MAINTAINER:=Aziz Ben Ali <ba.tahaaziz@gmail.com>
+PKG_MAINTAINER:=icyleaf <icyleaf.cn@gmail.com>
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -39,7 +36,6 @@ define Package/$(PKG_NAME)/description
 endef
 
 define Build/Prepare
-	mkdir -p $(PKG_BUILD_DIR)
 endef
 
 define Build/Compile

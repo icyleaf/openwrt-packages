@@ -9,17 +9,15 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=tailscale
 PKG_VERSION:=1.30.2
-PKG_RELEASE:=2
+PKG_RELEASE:=$(AUTORELEASE)
 
-PKG_SOURCE:=tailscale-$(PKG_VERSION).tar.gz
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/tailscale/tailscale/tar.gz/v$(PKG_VERSION)?
 PKG_HASH:=4e5ee37ae734b8312153d4f8da340295e9a6a455e3f3943a62199b16d89c8bb5
 
-PKG_MAINTAINER:=Jan Pavlinec <jan.pavlinec@nic.cz>
-PKG_LICENSE:=BSD-3-Clause
-PKG_LICENSE_FILES:=LICENSE
+PKG_MAINTAINER:=icyleaf <icyleaf.cn@gmail.com>
+PKG_LICENSE:=MIT
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/tailscale-$(PKG_VERSION)
 PKG_BUILD_DEPENDS:=golang/host
 PKG_BUILD_PARALLEL:=1
 PKG_USE_MIPS16:=0
