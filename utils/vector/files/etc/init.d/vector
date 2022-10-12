@@ -9,14 +9,14 @@ start_service() {
   local std_err std_out
   local verbose
 
-  # Validate
-  /usr/bin/vector validate
-
   config_load $APP
   config_get_bool std_out "main" log_stdout 1
   config_get_bool std_err "main" log_stderr 1
   config_get_bool verbose "main" log_stderr 1
   config_get config_file "main" config_file /etc/vector/config.yml
+
+  # Validate
+  /usr/bin/vector validate "$config_file"
 
   procd_open_instance
   procd_set_param command /usr/bin/$APP
