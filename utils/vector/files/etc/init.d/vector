@@ -15,6 +15,9 @@ start_service() {
   config_get_bool verbose "main" log_stderr 1
   config_get config_file "main" config_file /etc/vector/config.yml
 
+  # Default data storage path
+  mkdir -p tmp/vector
+
   # Validate
   /usr/bin/vector validate "$config_file"
 
