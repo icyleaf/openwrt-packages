@@ -2,15 +2,13 @@
 data_dir: /tmp/vector
 
 sources:
-  openwrt_log:
-    type: exec
-    mode: scheduled
-    command: logread
+  vector_log:
+    type: internal_logs
 
 sinks:
   print_openwrt_log:
     type: console
     inputs:
-      - openwrt_log
+      - vector_log
     encoding:
       codec: text

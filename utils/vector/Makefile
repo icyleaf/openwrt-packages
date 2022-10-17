@@ -40,7 +40,7 @@ define Package/$(PKG_NAME)
 	CATEGORY:=Utilities
 	TITLE:=A high-performance observability data pipeline.
 	URL:=https://github.com/vectordotdev/vector
-	DEPENDS:=@USE_MUSL @(aarch64||arm||x86_64) @!(i386||mips||mipsel||TARGET_x86_geode||TARGET_x86_legacy)
+	DEPENDS:=@(aarch64||arm||x86_64) @!(i386||mips||mipsel||TARGET_x86_geode||TARGET_x86_legacy)
 endef
 
 define Package/$(PKG_NAME)/description
