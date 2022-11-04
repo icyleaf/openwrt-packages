@@ -1,12 +1,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=traefik
-PKG_VERSION:=2.9.1
+PKG_VERSION:=2.9.4
 PKG_RELEASE:=$(AUTORELEASE)
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/traefik/traefik/tar.gz/v$(PKG_VERSION)?
-PKG_HASH:=c6651e978f95a8e510af603b536dd0a5ac22f95c73de961d2729785556740b48
+PKG_HASH:=9a7937bcbc1a010cd77540980e5bc2b7a852092d916e5fe536cae7f16d5e93f9
 
 PKG_MAINTAINER:=icyleaf <icyleaf.cn@gmail.com>
 PKG_LICENSE:=MIT
