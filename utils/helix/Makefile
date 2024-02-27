@@ -1,24 +1,25 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=vector
-PKG_VERSION:=0.36.0
+PKG_NAME:=helix
+PKG_VERSION:=23.10
 PKG_RELEASE:=$(AUTORELEASE)
 
-PKG_SOURCE_HEADER:=$(PKG_NAME)-$(PKG_VERSION)-$(ARCH)
-PKG_SOURCE_BODY:=unknown-linux-musl
-PKG_SOURCE_FOOTER:=tar.gz
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(ARCH).tar.xz
+PKG_SOURCE_URL:=https://github.com/helix-editor/helix/releases/download/$(PKG_VERSION)/$(PKG_SOURCE)?
+
+PKG_SOURCE_HEADER:=$(PKG_NAME)-$(PKG_VERSION)-$(ARCH).tar.xz
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_SOURCE_HEADER)-$(PKG_RELEASE)
 
 ifeq ($(ARCH),x86_64)
 	PKG_SOURCE_NAME:=$(PKG_NAME)-$(ARCH)-$(PKG_SOURCE_BODY)
 	PKG_SOURCE:=$(PKG_SOURCE_HEADER)-$(PKG_SOURCE_BODY).$(PKG_SOURCE_FOOTER)
 	PKG_SOURCE_URL:=https://github.com/vectordotdev/vector/releases/download/v$(PKG_VERSION)/$(PKG_SOURCE)?
-	PKG_HASH:=e00f944b21c5da08da853ac54da947505716eb14454e66e7a854f1feb64f78a0
+	PKG_HASH:=bd4de5edb942083c8d14098f98d875fd23d82dd2e23c3085b8d5030912b5bc97
 else ifeq ($(ARCH),aarch64)
 	PKG_SOURCE_NAME:=$(PKG_NAME)-$(ARCH)-$(PKG_SOURCE_BODY)
 	PKG_SOURCE:=$(PKG_SOURCE_HEADER)-$(PKG_SOURCE_BODY).$(PKG_SOURCE_FOOTER)
 	PKG_SOURCE_URL:=https://github.com/vectordotdev/vector/releases/download/v$(PKG_VERSION)/$(PKG_SOURCE)?
-	PKG_HASH:=36712dbf3554249a51bf4ae0dd6f661c37f8b7d452a51707c41a14144b020e95
+	PKG_HASH:=b16e5a5a83df744bac15bb2e22cc14c701a3d3a97d7901584e941776c81a691d
 else
 	PKG_SOURCE_NAME:=dummy
 	PKG_SOURCE:=dummy
@@ -38,35 +39,24 @@ TAR_CMD=$(HOST_TAR) -C $(1)/ $(TAR_OPTIONS)
 define Package/$(PKG_NAME)
 	SECTION:=utils
 	CATEGORY:=Utilities
-	TITLE:=A high-performance observability data pipeline.
-	URL:=https://github.com/vectordotdev/vector
+	TITLE:=A post-modern modal text editor.
+	URL:=https://github.com/helix-editor/helix
 	DEPENDS:=@(aarch64||arm||x86_64) @!(i386||mips||mipsel||TARGET_x86_geode||TARGET_x86_legacy)
 endef
 
 define Package/$(PKG_NAME)/description
-	A high-performance observability data pipeline.
+	A post-modern modal text editor.
 endef
 
 define Build/Compile
 endef
 
-define Package/$(PKG_NAME)/conffiles
-/etc/config/$(PKG_NAME)
-/etc/$(PKG_NAME)/config.yml
-endef
-
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_SOURCE_NAME)/bin/$(PKG_NAME) $(1)/usr/bin/$(PKG_NAME)
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_SOURCE_NAME)/hx $(1)/usr/bin/hx
 
-	$(INSTALL_DIR) $(1)/etc/config $(1)/etc/$(PKG_NAME) $(1)/etc/init.d $(1)/etc/uci-defaults
-	$(INSTALL_CONF) $(CURDIR)/files/etc/config/$(PKG_NAME) $(1)/etc/config/$(PKG_NAME)
-	$(INSTALL_CONF) $(CURDIR)/files/etc/$(PKG_NAME)/config.yml $(1)/etc/$(PKG_NAME)/config.yml
-	$(INSTALL_BIN) $(CURDIR)/files/etc/uci-defaults/50_vector $(1)/etc/uci-defaults/50_vector
-
-	$(CP) $(PKG_BUILD_DIR)/$(PKG_SOURCE_NAME)/config $(1)/etc/$(PKG_NAME)/config_examples
-
-	$(INSTALL_BIN) $(CURDIR)/files/etc/init.d/$(PKG_NAME) $(1)/etc/init.d/$(PKG_NAME)
+	$(INSTALL_DIR) $(1)/usr/share/$(PKG_NAME)
+	$(INSTALL_DIR) $(PKG_BUILD_DIR)/$(PKG_SOURCE_NAME)/runtime /usr/share/$(PKG_NAME)/runtime
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
