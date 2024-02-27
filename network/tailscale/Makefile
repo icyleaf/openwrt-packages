@@ -16,60 +16,50 @@ PKG_SOURCE_URL:=https://codeload.github.com/tailscale/tailscale/tar.gz/v$(PKG_VE
 PKG_HASH:=b857ba9944e37332c245bc9ebc158150b2e785909f27d32b6f7e01557150e88a
 
 PKG_MAINTAINER:=icyleaf <icyleaf.cn@gmail.com>
-PKG_LICENSE:=MIT
+PKG_LICENSE:=BSD-3-Clause
+PKG_LICENSE_FILES:=LICENSE
 
+PKG_BUILD_DIR:=$(BUILD_DIR)/tailscale-$(PKG_VERSION)
 PKG_BUILD_DEPENDS:=golang/host
 PKG_BUILD_PARALLEL:=1
-PKG_USE_MIPS16:=0
+PKG_BUILD_FLAGS:=no-mips16
 
 GO_PKG:=\
-	tailscale.com/cmd/tailscale \
 	tailscale.com/cmd/tailscaled
 
+GO_PKG_LDFLAGS:=-X 'tailscale.com/version.longStamp=$(PKG_VERSION)-$(PKG_RELEASE) (OpenWrt)'
+GO_PKG_LDFLAGS_X:=tailscale.com/version.shortStamp=$(PKG_VERSION)
+GO_PKG_TAGS:=ts_include_cli
+
 include $(INCLUDE_DIR)/package.mk
-include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk
-
-define Package/tailscale/Default
-	SECTION:=net
-	CATEGORY:=Network
-	SUBMENU:=VPN
-	TITLE:=Zero config VPN
-	URL:=https://tailscale.com
-	DEPENDS:=$(GO_ARCH_DEPENDS)
-endef
-
-define Package/tailscaled
-	$(call Package/tailscale/Default)
-	TITLE+= (daemon)
-	DEPENDS+= +ca-bundle +kmod-tun
-endef
+include ../../lang/golang/golang-package.mk
 
 define Package/tailscale
-	$(call Package/tailscale/Default)
-	TITLE+= (utility)
-	DEPENDS+= +tailscaled
+  SECTION:=net
+  CATEGORY:=Network
+  SUBMENU:=VPN
+  TITLE:=Zero config VPN
+  URL:=https://tailscale.com
+  DEPENDS:=$(GO_ARCH_DEPENDS) +ca-bundle +kmod-tun
+  PROVIDES:=tailscaled
 endef
 
 define Package/tailscale/description
-	It creates a secure network between your servers, computers,
-	and cloud instances. Even when separated by firewalls or subnets.
+  It creates a secure network between your servers, computers,
+  and cloud instances. Even when separated by firewalls or subnets.
 endef
 
-Package/tailscaled/description:=$(Package/tailscale/description)
+define Package/tailscale/conffiles
+/etc/config/tailscale
+/etc/tailscale/
+endef
 
 define Package/tailscale/install
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/tailscale $(1)/usr/sbin
-endef
-
-define Package/tailscaled/install
-	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/init.d $(1)/etc/config
 	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/tailscaled $(1)/usr/sbin
-	$(INSTALL_DIR) $(1)/etc/init.d/
-	$(INSTALL_BIN) ./files/etc/init.d/tailscale $(1)/etc/init.d/tailscale
-	$(INSTALL_DIR) $(1)/etc/config/
-	$(INSTALL_DATA) ./files/etc/config/tailscale $(1)/etc/config/tailscale
+	$(LN) tailscaled $(1)/usr/sbin/tailscale
+	$(INSTALL_BIN) ./files//tailscale.init $(1)/etc/init.d/tailscale
+	$(INSTALL_DATA) ./files//tailscale.conf $(1)/etc/config/tailscale
 endef
 
 $(eval $(call BuildPackage,tailscale))
-$(eval $(call BuildPackage,tailscaled))
