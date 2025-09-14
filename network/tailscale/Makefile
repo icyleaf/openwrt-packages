@@ -8,16 +8,18 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=tailscale
-PKG_VERSION:=1.58.2
+PKG_VERSION:=1.80.3
 PKG_RELEASE:=$(AUTORELEASE)
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/tailscale/tailscale/tar.gz/v$(PKG_VERSION)?
-PKG_HASH:=452f355408e4e2179872387a863387e06346fc8a6f9887821f9b8a072c6a5b0a
+PKG_HASH:=4ea7d4c1a4e86905f330f5d5f5288488cb29d6c586d5bcabf9d02c5481ba740d
 
-PKG_MAINTAINER:=icyleaf <icyleaf.cn@gmail.com>
+PKG_MAINTAINER:=Zephyr Lykos <self@mochaa.ws>, \
+		Sandro Jäckel <sandro.jaeckel@gmail.com>
 PKG_LICENSE:=BSD-3-Clause
 PKG_LICENSE_FILES:=LICENSE
+PKG_CPE_ID:=cpe:/a:tailscale:tailscale
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/tailscale-$(PKG_VERSION)
 PKG_BUILD_DEPENDS:=golang/host
@@ -26,13 +28,12 @@ PKG_BUILD_FLAGS:=no-mips16
 
 GO_PKG:=\
 	tailscale.com/cmd/tailscaled
-
 GO_PKG_LDFLAGS:=-X 'tailscale.com/version.longStamp=$(PKG_VERSION)-$(PKG_RELEASE) (OpenWrt)'
 GO_PKG_LDFLAGS_X:=tailscale.com/version.shortStamp=$(PKG_VERSION)
-GO_PKG_TAGS:=ts_include_cli
+GO_PKG_TAGS:=ts_include_cli,ts_omit_aws,ts_omit_bird,ts_omit_tap,ts_omit_kube,ts_omit_completion
 
 include $(INCLUDE_DIR)/package.mk
-include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk
+include ../../lang/golang/golang-package.mk
 
 define Package/tailscale
   SECTION:=net
@@ -57,10 +58,9 @@ endef
 define Package/tailscale/install
 	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/init.d $(1)/etc/config
 	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/tailscaled $(1)/usr/sbin
-	$(INSTALL_DIR) $(1)/etc/init.d/
-	$(INSTALL_BIN) ./files/etc/init.d/tailscale $(1)/etc/init.d/tailscale
-	$(INSTALL_DIR) $(1)/etc/config/
-	$(INSTALL_DATA) ./files/etc/config/tailscale $(1)/etc/config/tailscale
+	$(LN) tailscaled $(1)/usr/sbin/tailscale
+	$(INSTALL_BIN) ./files//tailscale.init $(1)/etc/init.d/tailscale
+	$(INSTALL_DATA) ./files//tailscale.conf $(1)/etc/config/tailscale
 endef
 
 $(eval $(call BuildPackage,tailscale))
