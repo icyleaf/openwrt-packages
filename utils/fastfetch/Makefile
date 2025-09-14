@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=fastfetch
 PKG_VERSION:=2.52.0
-PKG_RELEASE:=$(AUTORELEASE)
+PKG_RELEASE:=7
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/fastfetch-cli/fastfetch/tar.gz/$(PKG_VERSION)?
@@ -29,6 +29,9 @@ define Package/fastfetch/description
   Fastfetch is a neofetch-like tool for fetching
   system information and displaying it prettily.
 endef
+
+# disable statx in musl
+CMAKE_OPTIONS += -DHAVE_STATX=0
 
 define Package/fastfetch/install
 	$(INSTALL_DIR) $(1)/usr/bin
