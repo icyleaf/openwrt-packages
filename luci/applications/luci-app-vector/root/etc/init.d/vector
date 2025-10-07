@@ -6,12 +6,14 @@ USE_PROCD=1
 APP=vector
 
 start_service() {
+  local bin_path
   local config_file
   local watch_config
   local std_err std_out
   local verbose
 
   config_load $APP
+  config_get bin_path "main" bin_path /usr/bin/$APP
   config_get_bool std_out "main" log_stdout 1
   config_get_bool std_err "main" log_stderr 1
   config_get_bool watch_config "main" watch_config 1
@@ -21,8 +23,13 @@ start_service() {
   # Default data storage path
   mkdir -p tmp/vector
 
+  [ -x "$bin_path" ] || {
+    echo "Error: $APP binary not found: $bin_path"
+    return 1
+  }
+
   # Validate
-  /usr/bin/vector validate "$config_file"
+  $bin_path validate "$config_file"
 
   procd_open_instance
   procd_set_param command /usr/bin/$APP
