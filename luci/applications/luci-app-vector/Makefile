@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=luci-app-vector
 PKG_MAINTAINER:=icyleaf <icyleaf.cn@gmail.com>
 PKG_LICENSE:=GPL-3.0
-PKG_VERSION:=0.1.18
+PKG_VERSION:=0.1.19
 PKG_RELEASE:=$(AUTORELEASE)
 
 LUCI_TITLE:=LuCI for Vector
