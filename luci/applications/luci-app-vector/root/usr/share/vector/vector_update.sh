@@ -3,6 +3,7 @@
 
 PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 
+SUPPORTED_ARCH="x86_64 aarch64"
 ARCH=$(uname -m)
 BIN_PATH_CONFIG_KEY="vector.main.bin_path"
 BIN_PATH=$(uci get "$BIN_PATH_CONFIG_KEY")
@@ -24,18 +25,20 @@ if [ -z "${latest_ver}" ]; then
 fi
 
 echo $latest_ver
-
 echo "Updating to version: $latest_ver"
-
-
 echo "Detected architecture: $ARCH"
-SUPPORTED_ARCH=("x86_64" "aarch64")
-if [[ ! " ${SUPPORTED_ARCH[@]} " =~ " ${ARCH} " ]]; then
-  echo -e "\nUnsupported architecture: $ARCH" && exit 1
+
+arch=
+for a in $SUPPORTED_ARCH; do
+  [ "$ARCH" = "$a" ] && arch=$a
+done
+if [ -z "$arch" ]; then
+  echo "Unsupported architecture: $arch"
+  exit 1
 fi
 
 version=${latest_ver#v}
-download_url="https://github.com/vectordotdev/vector/releases/download/v${version}/vector-${version}-${arch}-unknown-linux-musl.tar.gz"
+download_url="https://github.com/vectordotdev/vector/releases/download/v${version}/vector-${version}-${ARCH}-unknown-linux-musl.tar.gz"
 
 echo "Download URL: $download_url"
 tmp_dir="/tmp/vector"
@@ -57,15 +60,15 @@ if [ ! -f "$tmp_dir/bin/vector" ]; then
   echo -e "\nVector binary not found after extraction, please try again later." && exit 1
 fi
 
-echo -e "\nInstalling vector to $binpath ..."
-mv "$tmp_dir/bin/vector" "$binpath"
+echo -e "\nInstalling vector to $BIN_PATH ..."
+mv "$tmp_dir/bin/vector" "$BIN_PATH"
 if [ $? -ne 0 ]; then
-  echo -e "\nFailed to move vector binary to $binpath, please check permissions." && exit 1
+  echo -e "\nFailed to move vector binary to $BIN_PATH, please check permissions." && exit 1
 fi
 
-chmod +x "$binpath"
+chmod +x "$BIN_PATH"
 if [ $? -ne 0 ]; then
-  echo -e "\nFailed to set execute permissions on $binpath, please check permissions"
+  echo -e "\nFailed to set execute permissions on $BIN_PATH, please check permissions"
 fi
 
 echo "Vector updated to version $version successfully!"

@@ -1,0 +1,25 @@
+# Set global options
+data_dir: /tmp/vector
+
+api:
+  address: 0.0.0.0:8686
+  enabled: true
+
+sources:
+  vector_log:
+    type: internal_logs
+  vector_metrics:
+    type: internal_metrics
+
+sinks:
+  print_openwrt_log:
+    type: console
+    inputs:
+      - vector_log
+    encoding:
+      codec: text
+  #prometheus:
+  #  type: prometheus_remote_write
+  #  endpoint: https://0.0.0.0:8087/
+  #  inputs:
+  #    - vector_metrics

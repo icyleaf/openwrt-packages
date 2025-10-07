@@ -1,22 +1,25 @@
-# Licensed to the public under the GPL V3 License.
-
 include $(TOPDIR)/rules.mk
+
+PKG_NAME:=luci-app-vector
+PKG_MAINTAINER:=icyleaf <icyleaf.cn@gmail.com>
+PKG_LICENSE:=GPL-3.0
+PKG_VERSION:=0.1.18
+PKG_RELEASE:=$(AUTORELEASE)
 
 LUCI_TITLE:=LuCI for Vector
 LUCI_DESCRIPTION:=Provides Luci for vector
 LUCI_DEPENDS:=+luci-base +curl
 LUCI_PKGARCH:=all
 
-PKG_MAINTAINER:=icyleaf <icyleaf.cn@gmail.com>
-PKG_LICENSE:=GPL-3.0
-PKG_VERSION:=0.1.4
-PKG_RELEASE:=$(AUTORELEASE)
-
 include $(TOPDIR)/feeds/luci/luci.mk
 
-define Package/luci-app-vector/install
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_DIR) $(1)/etc/config
+define Package/$(PKG_NAME)/conffiles
+	/etc/config/vector
+	/etc/vector/config.yaml
+endef
+
+define Package/$(PKG_NAME)/install
+	$(INSTALL_DIR) $(1)/etc/config $(1)/etc/init.d
 endef
 
 # call BuildPackage - OpenWrt buildroot signature

@@ -13,20 +13,19 @@ start_service() {
   local verbose
 
   config_load $APP
-  config_get bin_path "main" bin_path /usr/bin/$APP
   config_get_bool std_out "main" log_stdout 1
   config_get_bool std_err "main" log_stderr 1
   config_get_bool watch_config "main" watch_config 1
   config_get_bool verbose "main" verbose 0
   config_get config_file "main" config_file /etc/vector/config.yml
+  config_get bin_path "main" bin_path /usr/bin/$APP
+
+  # Check if binary and config file exists
+  [ -x "$bin_path" ] || return
+  [ -f "$config_file" ] || return
 
   # Default data storage path
   mkdir -p tmp/vector
-
-  [ -x "$bin_path" ] || {
-    echo "Error: $APP binary not found: $bin_path"
-    return 1
-  }
 
   # Validate
   $bin_path validate "$config_file"

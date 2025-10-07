@@ -9,8 +9,6 @@
 
 const SUPPORTED_ARCH = ['x86_64', 'aarch64'];
 const CONFIG_NAME = 'vector';
-const DOWNLOAD_URL = 'https://github.com/vectordotdev/vector/releases/download';
-const DOWNLOAD_SUFFIX = '-unknown-linux-musl.tar.gz';
 
 function uciGet(section, option, defaultValue) {
   return uci.get(CONFIG_NAME, section, option) || defaultValue;
@@ -153,8 +151,7 @@ function basic_view(m, s, o, data) {
           const btnText = btn.innerText;
           btn.disabled = true;
           btn.innerText = _('Downloading ...');
-          fs.exec('/usr/share/vector/vector_update.sh').then(() => {
-            console.log("Downloaded vector tarball");
+          fs.exec('/bin/sh', [ '/usr/share/vector/vector_update.sh' ]).then(() => {
             ui.addNotification(null, E('p', _('Vector downloaded and installed to %s').format(binPath)), 'success');
             btn.innerText = _('Download success, click to update again');
             btn.disabled = false;

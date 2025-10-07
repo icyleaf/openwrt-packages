@@ -5,8 +5,7 @@
       "file": {
         "/bin/uname -m": [ "exec" ],
         "/sbin/logread -e vector": [ "exec" ],
-        "/usr/share/vector/vector_update.sh": [ "exec" ],
-        "/usr/share/vector/vector_version.sh": [ "exec" ]
+        "/usr/share/vector/*": [ "exec" ]
       },
       "ubus": {
         "service": [
