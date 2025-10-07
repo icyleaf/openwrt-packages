@@ -1,6 +1,6 @@
 {
   "luci-app-vector": {
-    "description": "Grant access to Vector configuration",
+    "description": "Grant access to luci-app-vector configuration",
     "read": {
       "file": {
         "/bin/uname -m": [ "exec" ],

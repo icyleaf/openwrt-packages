@@ -19,7 +19,7 @@
     }
   },
   "admin/services/vector/config": {
-    "title": "Edit Configuration",
+    "title": "Configuration",
     "order": 2,
     "action": {
       "type": "view",
