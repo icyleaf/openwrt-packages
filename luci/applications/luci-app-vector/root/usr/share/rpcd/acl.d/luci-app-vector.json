@@ -1,0 +1,33 @@
+{
+  "luci-app-vector": {
+    "description": "Grant access to Vector configuration",
+    "read": {
+      "file": {
+        "/bin/uname -m": [ "exec" ],
+        "/sbin/logread -e vector": [ "exec" ],
+        "/usr/share/vector/vector_update.sh": [ "exec" ],
+        "/usr/share/vector/vector_version.sh": [ "exec" ]
+      },
+      "ubus": {
+        "service": [
+          "list"
+        ],
+        "luci": [ "setInitAction" ]
+      },
+      "uci": [
+        "vector"
+      ]
+    },
+    "write": {
+      "file": {
+        "/etc/vector/*": [
+          "read",
+          "write"
+        ]
+      },
+      "uci": [
+        "vector"
+      ]
+    }
+  }
+}
