@@ -1,0 +1,22 @@
+{
+  "luci-app-openstore": {
+    "description": "Grant access to luci-app-openstore operations",
+    "read": {
+      "file": {
+        "/usr/share/openstore/store_helper *": [ "exec" ],
+        "/bin/uname -m": [ "exec" ]
+      },
+      "uci": [
+        "openstore"
+      }
+    },
+    "write": {
+      "file": {
+        "/usr/share/openstore/store_helper *": [ "exec" ]
+      },
+      "uci": [
+        "openstore"
+      ]
+    }
+  }
+}

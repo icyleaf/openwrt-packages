@@ -1,0 +1,38 @@
+config openstore 'main'
+	option enabled '1'
+
+config app
+	option id 'vector'
+	option title 'Vector'
+	option repo 'vectordotdev/vector'
+	option asset_keyword_amd64 'x86_64-unknown-linux-musl'
+	option asset_keyword_arm64 'aarch64-unknown-linux-musl'
+	option binaries 'vector'
+	option bin_dir '/usr/bin'
+	option config_dir '/etc/vector'
+	option config_files ''
+	option version_cmd 'vector --version 2>/dev/null | awk '\''NR==1 {print $2}'\'''
+
+config app
+	option id 'traefik'
+	option title 'Traefik'
+	option repo 'traefik/traefik'
+	option asset_keyword_amd64 'linux_amd64'
+	option asset_keyword_arm64 'linux_arm64'
+	option binaries 'traefik'
+	option bin_dir '/usr/bin'
+	option config_dir '/etc/traefik'
+	option config_files ''
+	option version_cmd 'traefik version 2>/dev/null | sed -n '\''s/^Version:[[:space:]]*//p'\'' | head -n 1'
+
+config app
+	option id 'tailscale'
+	option title 'Tailscale'
+	option repo 'tailscale/tailscale'
+	option asset_keyword_amd64 'amd64.tgz'
+	option asset_keyword_arm64 'arm64.tgz'
+	option binaries 'tailscale,tailscaled'
+	option bin_dir '/usr/bin'
+	option config_dir '/etc/tailscale'
+	option config_files ''
+	option version_cmd 'tailscale version 2>/dev/null | awk '\''NR==1 {print $1}'\'''

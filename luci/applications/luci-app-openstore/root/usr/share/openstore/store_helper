@@ -1,0 +1,429 @@
+#!/bin/sh
+
+set -eu
+
+. /lib/functions.sh
+
+API_BASE="https://api.github.com/repos"
+TMP_BASE="/tmp/openstore"
+CONFIG_NAME="openstore"
+OPKG_INFO_DIR="/usr/lib/opkg/info"
+MANIFEST_DIR="/usr/lib/openstore/installed"
+mkdir -p "$TMP_BASE"
+
+json_escape() {
+	printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+get_arch() {
+	local raw
+	raw="$(uname -m)"
+	case "$raw" in
+		x86_64|amd64) echo "amd64" ;;
+		aarch64|arm64) echo "arm64" ;;
+		*) echo "unknown" ;;
+	esac
+}
+
+fetch_latest_json() {
+	local repo="$1"
+	if command -v uclient-fetch >/dev/null 2>&1; then
+		uclient-fetch -qO- "$API_BASE/$repo/releases/latest"
+	else
+		wget -qO- "$API_BASE/$repo/releases/latest"
+	fi
+}
+
+get_latest_tag() {
+	local repo="$1"
+	fetch_latest_json "$repo" | jsonfilter -e '@.tag_name' 2>/dev/null || true
+}
+
+strip_v() {
+	printf '%s' "$1" | sed 's/^v//'
+}
+
+detect_version_from_binary() {
+	local bin_path="$1"
+	local out version
+
+	[ -x "$bin_path" ] || return 0
+
+	out="$("$bin_path" --version 2>/dev/null | head -n 1 || true)"
+	if [ -z "$out" ]; then
+		out="$("$bin_path" -version 2>/dev/null | head -n 1 || true)"
+	fi
+
+	[ -n "$out" ] || return 0
+
+	version="$(printf '%s' "$out" | grep -Eo 'v?[0-9]+([.][0-9A-Za-z_-]+)+' | head -n 1 || true)"
+	if [ -n "$version" ]; then
+		printf '%s' "$version" | sed 's/^v//'
+	else
+		printf '%s' "$out" | tr -d '\r'
+	fi
+}
+
+get_current_version() {
+	local version_cmd="$1"
+	local bin_dir="$2"
+	local binaries="$3"
+	local bn detected
+
+	if [ -n "$version_cmd" ]; then
+		sh -c "$version_cmd" 2>/dev/null | head -n 1 | tr -d '\r'
+		return 0
+	fi
+
+	[ -n "$binaries" ] || return 0
+	[ -n "$bin_dir" ] || bin_dir='/usr/bin'
+
+	IFS=','
+	for bn in $binaries; do
+		detected="$(detect_version_from_binary "$bin_dir/$bn")"
+		if [ -n "$detected" ]; then
+			unset IFS
+			printf '%s' "$detected"
+			return 0
+		fi
+	done
+	unset IFS
+}
+
+find_asset_url() {
+	local repo="$1"
+	local keyword="$2"
+	fetch_latest_json "$repo" | jsonfilter -e "@.assets[@.name~/$keyword/].browser_download_url" 2>/dev/null | head -n 1 || true
+}
+
+json_bool() {
+	if [ "$1" = "1" ] || [ "$1" = "true" ]; then
+		echo true
+	else
+		echo false
+	fi
+}
+
+ensure_dir() {
+	local dir_path="$1"
+	[ -n "$dir_path" ] || return 0
+	mkdir -p "$dir_path"
+}
+
+opkg_owner_of_path() {
+	local target_path="$1"
+	local list_file pkg
+
+	[ -e "$target_path" ] || return 0
+	[ -d "$OPKG_INFO_DIR" ] || return 0
+
+	for list_file in "$OPKG_INFO_DIR"/*.list; do
+		[ -f "$list_file" ] || continue
+		if grep -Fxq "$target_path" "$list_file" 2>/dev/null; then
+			pkg="$(basename "$list_file" .list)"
+			printf '%s' "$pkg"
+			return 0
+		fi
+	done
+}
+
+backup_if_exists() {
+	local target_path="$1"
+	local owner backup_path
+
+	[ -e "$target_path" ] || return 0
+
+	owner="$(opkg_owner_of_path "$target_path")"
+	if [ -n "$owner" ]; then
+		echo "refusing to overwrite opkg-managed file: $target_path (owner: $owner)" >&2
+		exit 7
+	fi
+
+	backup_path="${target_path}.openstore.bak.$(date +%s)"
+	cp -f "$target_path" "$backup_path"
+}
+
+record_installed_path() {
+	local app_id="$1"
+	local target_path="$2"
+	local app_manifest
+
+	ensure_dir "$MANIFEST_DIR"
+	app_manifest="$MANIFEST_DIR/${app_id}.files"
+	touch "$app_manifest"
+	if ! grep -Fxq "$target_path" "$app_manifest" 2>/dev/null; then
+		echo "$target_path" >> "$app_manifest"
+	fi
+}
+
+openstore_owner_of_path() {
+	local target_path="$1"
+	local manifest_file app_id
+
+	[ -e "$target_path" ] || return 0
+	[ -d "$MANIFEST_DIR" ] || return 0
+
+	for manifest_file in "$MANIFEST_DIR"/*.files; do
+		[ -f "$manifest_file" ] || continue
+		if grep -Fxq "$target_path" "$manifest_file" 2>/dev/null; then
+			app_id="$(basename "$manifest_file" .files)"
+			printf '%s' "$app_id"
+			return 0
+		fi
+	done
+}
+
+inspect_path_owner() {
+	local target_path="$1"
+	local opkg_owner openstore_owner
+
+	if [ ! -e "$target_path" ]; then
+		printf '{"path":"%s","exists":false,"source":"missing"}\n' "$(json_escape "$target_path")"
+		return 0
+	fi
+
+	opkg_owner="$(opkg_owner_of_path "$target_path")"
+	if [ -n "$opkg_owner" ]; then
+		printf '{"path":"%s","exists":true,"source":"opkg","owner":"%s"}\n' \
+			"$(json_escape "$target_path")" \
+			"$(json_escape "$opkg_owner")"
+		return 0
+	fi
+
+	openstore_owner="$(openstore_owner_of_path "$target_path")"
+	if [ -n "$openstore_owner" ]; then
+		printf '{"path":"%s","exists":true,"source":"openstore","owner":"%s"}\n' \
+			"$(json_escape "$target_path")" \
+			"$(json_escape "$openstore_owner")"
+		return 0
+	fi
+
+	printf '{"path":"%s","exists":true,"source":"unknown"}\n' "$(json_escape "$target_path")"
+}
+
+find_extracted_file() {
+	local unpack_dir="$1"
+	local pattern="$2"
+	local candidate=''
+
+	[ -n "$pattern" ] || return 0
+
+	if [ -f "$unpack_dir/$pattern" ]; then
+		printf '%s' "$unpack_dir/$pattern"
+		return 0
+	fi
+
+	candidate="$(find "$unpack_dir" -type f \( -path "*/$pattern" -o -name "$pattern" \) | head -n 1 || true)"
+	printf '%s' "$candidate"
+}
+
+append_app_json() {
+	local section="$1"
+	local arch="$2"
+	local first_ref_name="$3"
+	local app_id title repo keyword_amd64 keyword_arm64 binaries bin_dir config_dir config_files version_cmd latest_tag latest_ver current_ver keyword asset_url has_update enabled
+
+	config_get enabled "$section" enabled '1'
+	[ "$enabled" = '0' ] && return 0
+
+	config_get app_id "$section" id
+	config_get title "$section" title "$app_id"
+	config_get repo "$section" repo
+	config_get keyword_amd64 "$section" asset_keyword_amd64
+	config_get keyword_arm64 "$section" asset_keyword_arm64
+	config_get binaries "$section" binaries
+	config_get bin_dir "$section" bin_dir '/usr/bin'
+	config_get config_dir "$section" config_dir ''
+	config_get config_files "$section" config_files ''
+	config_get version_cmd "$section" version_cmd
+
+	[ -n "$app_id" ] || return 0
+	[ -n "$repo" ] || return 0
+
+	latest_tag="$(get_latest_tag "$repo")"
+	latest_ver="$(strip_v "$latest_tag")"
+	current_ver="$(get_current_version "$version_cmd" "$bin_dir" "$binaries" || true)"
+	has_update='false'
+
+	if [ -n "$latest_ver" ] && [ -n "$current_ver" ] && [ "$latest_ver" != "$current_ver" ]; then
+		has_update='true'
+	fi
+
+	case "$arch" in
+		amd64) keyword="$keyword_amd64" ;;
+		arm64) keyword="$keyword_arm64" ;;
+		*) keyword='' ;;
+	esac
+
+	asset_url=''
+	if [ -n "$keyword" ]; then
+		asset_url="$(find_asset_url "$repo" "$keyword")"
+	fi
+
+	eval "first_value=\${$first_ref_name}"
+	if [ "$first_value" -eq 0 ]; then
+		printf ','
+	fi
+	eval "$first_ref_name=0"
+
+	printf '{'
+	printf '"id":"%s",' "$(json_escape "$app_id")"
+	printf '"name":"%s",' "$(json_escape "$title")"
+	printf '"repo":"%s",' "$(json_escape "$repo")"
+	printf '"latest":"%s",' "$(json_escape "$latest_ver")"
+	printf '"current":"%s",' "$(json_escape "$current_ver")"
+	printf '"has_update":%s,' "$has_update"
+	printf '"asset_url":"%s",' "$(json_escape "$asset_url")"
+	printf '"binaries":"%s",' "$(json_escape "$binaries")"
+	printf '"bin_dir":"%s",' "$(json_escape "$bin_dir")"
+	printf '"config_dir":"%s",' "$(json_escape "$config_dir")"
+	printf '"config_files":"%s"' "$(json_escape "$config_files")"
+	printf '}'
+}
+
+find_app_section() {
+	local lookup_id="$1"
+	local result=''
+	config_load "$CONFIG_NAME"
+	config_foreach "__find_app_section" app "$lookup_id"
+	printf '%s' "$OPENSTORE_FOUND_SECTION"
+}
+
+__find_app_section() {
+	local section="$1"
+	local lookup_id="$2"
+	local app_id
+	config_get app_id "$section" id
+	if [ "$app_id" = "$lookup_id" ]; then
+		OPENSTORE_FOUND_SECTION="$section"
+		return 1
+	fi
+}
+
+catalog_json() {
+	local arch first=1
+	arch="$(get_arch)"
+	printf '{"arch":"%s","apps":[' "$(json_escape "$arch")"
+	config_load "$CONFIG_NAME"
+	config_foreach append_app_json app "$arch" first
+
+	printf ']}'
+}
+
+install_app() {
+	local app_id="$1" arch section repo keyword_amd64 keyword_arm64 bins bin_dir config_dir config_files keyword asset_url latest_tag latest_ver tmpfile unpack_dir bn cfg found=0 cfg_found=0 candidate target_path
+	arch="$(get_arch)"
+	OPENSTORE_FOUND_SECTION=''
+	config_load "$CONFIG_NAME"
+	config_foreach __find_app_section app "$app_id"
+	section="$OPENSTORE_FOUND_SECTION"
+	[ -n "$section" ] || { echo "unknown app: $app_id" >&2; exit 2; }
+
+	config_get repo "$section" repo
+	config_get keyword_amd64 "$section" asset_keyword_amd64
+	config_get keyword_arm64 "$section" asset_keyword_arm64
+	config_get bins "$section" binaries
+	config_get bin_dir "$section" bin_dir '/usr/bin'
+	config_get config_dir "$section" config_dir ''
+	config_get config_files "$section" config_files ''
+
+	case "$arch" in
+		amd64) keyword="$keyword_amd64" ;;
+		arm64) keyword="$keyword_arm64" ;;
+		*) echo "unsupported arch: $arch" >&2; exit 3 ;;
+	esac
+
+	latest_tag="$(get_latest_tag "$repo")"
+	latest_ver="$(strip_v "$latest_tag")"
+	asset_url="$(find_asset_url "$repo" "$keyword")"
+	[ -n "$asset_url" ] || { echo "asset not found for $app_id/$arch" >&2; exit 4; }
+
+	tmpfile="$TMP_BASE/${app_id}.download"
+	unpack_dir="$TMP_BASE/${app_id}.unpack"
+	rm -rf "$unpack_dir"
+	mkdir -p "$unpack_dir"
+
+	if command -v uclient-fetch >/dev/null 2>&1; then
+		uclient-fetch -qO "$tmpfile" "$asset_url"
+	else
+		wget -qO "$tmpfile" "$asset_url"
+	fi
+
+	case "$asset_url" in
+		*.tar.gz|*.tgz)
+			tar -xzf "$tmpfile" -C "$unpack_dir"
+			;;
+		*.zip)
+			if command -v unzip >/dev/null 2>&1; then
+				unzip -q "$tmpfile" -d "$unpack_dir"
+			else
+				echo "unzip is required for zip assets" >&2
+				exit 6
+			fi
+			;;
+		*)
+			# Raw binary fallback.
+			cp "$tmpfile" "$unpack_dir/$app_id"
+			;;
+	esac
+
+	ensure_dir "$bin_dir"
+	IFS=','
+	for bn in $bins; do
+		candidate="$(find_extracted_file "$unpack_dir" "$bn")"
+		if [ -n "$candidate" ]; then
+			target_path="$bin_dir/$bn"
+			backup_if_exists "$target_path"
+			cp "$candidate" "$target_path"
+			chmod +x "$target_path"
+			record_installed_path "$app_id" "$target_path"
+			found=1
+		fi
+	done
+	unset IFS
+
+	[ "$found" -eq 1 ] || { echo "no executable found in archive" >&2; exit 5; }
+
+	if [ -n "$config_files" ] && [ -n "$config_dir" ]; then
+		ensure_dir "$config_dir"
+		IFS=','
+		for cfg in $config_files; do
+			candidate="$(find_extracted_file "$unpack_dir" "$cfg")"
+			if [ -n "$candidate" ]; then
+				target_path="$config_dir/$(basename "$cfg")"
+				backup_if_exists "$target_path"
+				cp "$candidate" "$target_path"
+				record_installed_path "$app_id" "$target_path"
+				cfg_found=1
+			fi
+		done
+		unset IFS
+	fi
+
+	printf '{"ok":true,"app":"%s","version":"%s","bin_dir":"%s","config_dir":"%s"}\n' \
+		"$(json_escape "$app_id")" \
+		"$(json_escape "$latest_ver")" \
+		"$(json_escape "$bin_dir")" \
+		"$(json_escape "$config_dir")"
+}
+
+case "${1:-}" in
+	arch)
+		get_arch
+		;;
+	catalog)
+		catalog_json
+		;;
+	install)
+		[ -n "${2:-}" ] || { echo "usage: $0 install <app>" >&2; exit 1; }
+		install_app "$2"
+		;;
+	inspect)
+		[ -n "${2:-}" ] || { echo "usage: $0 inspect <path>" >&2; exit 1; }
+		inspect_path_owner "$2"
+		;;
+	*)
+		echo "usage: $0 {arch|catalog|install <app>|inspect <path>}" >&2
+		exit 1
+		;;
+esac
